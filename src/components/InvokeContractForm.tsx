@@ -32,6 +32,7 @@ import { RpcErrorResponse } from "./ErrorResponse"
 import { ErrorText } from "./ErrorText"
 import { JsonSchemaRenderer } from "./JsonSchemaRenderer"
 import { PrettyJsonTransaction } from "./PrettyJsonTransaction"
+import { ReturnValueBox } from "./ReturnValueBox"
 import { TransactionSuccessCard } from "./TransactionSuccessCard"
 import { ValidationResponseCard } from "./ValidationResponseCard"
 
@@ -471,18 +472,26 @@ export const InvokeContractForm = ({
 
 		const result = simulateResult || submitResult
 
+		const nonVoidReturnValues = isSuccessfulSimulation
+			? ((simulateResult as Api.RawSimulateTransactionResponse).results
+					?.filter(
+						(r): r is typeof r & { returnValueJson: unknown } =>
+							"returnValueJson" in r && r.returnValueJson !== "void",
+					)
+					.map((r) => r.returnValueJson) ?? [])
+			: []
+
 		const simulationSummary = isSuccessfulSimulation ? (
-			<Alert variant="success" placement="inline" title="Successful Simulation">
-				{`The Simulation succeeded with
-        ${
-					(
-						simulateResult as Api.RawSimulateTransactionResponse
-					).results?.filter(
-						(r) => "returnValueJson" in r && r.returnValueJson !== "void",
-					).length || 0
-				}
-        returned value(s).`}
-			</Alert>
+			<>
+				<Alert
+					variant="success"
+					placement="inline"
+					title="Successful Simulation"
+				>
+					{`The Simulation succeeded with ${nonVoidReturnValues.length} returned value(s).`}
+				</Alert>
+				<ReturnValueBox values={nonVoidReturnValues} />
+			</>
 		) : isFailedSimulation ? (
 			<Alert variant="error" placement="inline" title="Simulation Failed">
 				{simulateResult?.error}`
